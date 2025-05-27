@@ -1,0 +1,38 @@
+{% extends "base.html" %}
+{% block title %}{{ title }}{% endblock %}
+{% block content %}
+    <h1>{{ title }}</h1>
+    <form method="post">
+        <div class="form-group">
+            <label for="patient_name">ФИО пациента:</label>
+            <input type="text" name="patient_name" id="patient_name" 
+                   value="{{ visit.patient_name if visit }}" required>
+        </div>
+
+        <div class="form-group">
+            <label for="doctor_name">ФИО врача:</label>
+            <input type="text" name="doctor_name" id="doctor_name" 
+                   value="{{ visit.doctor_name if visit }}" required>
+        </div>
+
+        <div class="form-group">
+            <label for="reason">Причина обращения:</label>
+            <input type="text" name="reason" id="reason" 
+                   value="{{ visit.reason if visit }}" required>
+        </div>
+
+        <div class="form-group">
+            <label for="duration">Длительность (минут):</label>
+            <input type="number" name="duration" id="duration" 
+                   value="{{ visit.duration if visit else 15 }}" min="1" required>
+        </div>
+
+        <div class="form-group">
+            <label for="date">Дата приема:</label>
+            <input type="date" name="date" id="date" 
+                   value="{{ visit.date if visit else today }}" required>
+        </div>
+
+        <button type="submit" class="btn">💾 Сохранить</button>
+    </form>
+{% endblock %}
