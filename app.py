@@ -13,6 +13,7 @@ class VisitApp:
 
         html = open(os.path.join(TEMPLATE_DIR, 'index.html'), encoding='utf-8').read()
         rows = ""
+        arows = ''
         for v in visits:
             rows += f"""
             <tr>
