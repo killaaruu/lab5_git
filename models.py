@@ -28,3 +28,5 @@ class Visit(Model):
 def create_tables():
     with db:
         db.create_tables([Patient, Doctor, Visit])
+
+        #bruh machines
