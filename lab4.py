@@ -1,262 +1,181 @@
 import os
 import csv
-from datetime import datetime
-from typing import Iterator, List, Dict, Optional
+from operator import itemgetter
 
 
-class MedicalVisit:
-    """Базовый класс для представления посещения поликлиники"""
+class Visit:
+    def __init__(self, visit_id, patient_name, doctor_name, reason, duration):
+        self.id = visit_id
+        self.patient_name = patient_name
+        self.doctor_name = doctor_name
+        self.reason = reason
+        self.duration = int(duration)
 
-    # Статическое поле для хранения всех посещений
-    _all_visits = []
+    def __setattr__(self, key, value):
+        # Запись значений только через __setattr__
+        if key in ['id', 'patient_name', 'doctor_name', 'reason', 'duration']:
+            object.__setattr__(self, key, value)
+        else:
+            raise AttributeError(f"Недопустимый атрибут: {key}")
 
-    def __init__(self, visit_id: str, patient_name: str, doctor_name: str,
-                 reason: str, duration: int, visit_date: Optional[str] = None):
-        self._id = visit_id
-        self._patient_name = patient_name
-        self._doctor_name = doctor_name
-        self._reason = reason
-        self._duration = duration
-        self._visit_date = visit_date or datetime.now().strftime("%Y-%m-%d")
+    def __repr__(self):
+        return f"Visit(id={self.id}, patient='{self.patient_name}', doctor='{self.doctor_name}', reason='{self.reason}', duration={self.duration})"
 
-        # Добавляем экземпляр в общий список
-        MedicalVisit._all_visits.append(self)
-
-    def __setattr__(self, name: str, value: str) -> None:
-        """Контроль установки атрибутов"""
-        if name == '_duration' and int(value) <= 0:
-            raise ValueError("Длительность должна быть положительным числом")
-        super().__setattr__(name, value)
-
-    def __getitem__(self, key: str) -> str:
-        """Доступ к атрибутам как к элементам коллекции"""
-        if key in self.__dict__:
-            return self.__dict__[key]
-        raise KeyError(f"Нет атрибута {key}")
-
-    def __repr__(self) -> str:
-        """Официальное строковое представление"""
-        return (f"MedicalVisit(id={self._id}, patient={self._patient_name}, "
-                f"doctor={self._doctor_name}, reason={self._reason}, "
-                f"duration={self._duration}, date={self._visit_date})")
-
-    def __str__(self) -> str:
-        """Неформальное строковое представление"""
-        return (f"Посещение #{self._id}: {self._patient_name} у {self._doctor_name} "
-                f"по причине '{self._reason}' ({self._duration} мин)")
-
-    @property
-    def duration(self) -> int:
-        return self._duration
-
-    @duration.setter
-    def duration(self, value: int) -> None:
-        if value <= 0:
-            raise ValueError("Длительность должна быть положительным числом")
-        self._duration = value
-
-    @staticmethod
-    def load_from_csv(filename: str = 'data.csv') -> None:
-        """Статический метод для загрузки данных из CSV"""
-        MedicalVisit._all_visits.clear()
-        try:
-            with open(filename, 'r', encoding='utf-8') as file:
-                reader = csv.DictReader(file)
-                for row in reader:
-                    MedicalVisit(
-                        visit_id=row['id'],
-                        patient_name=row['patient_name'],
-                        doctor_name=row['doctor_name'],
-                        reason=row['reason'],
-                        duration=int(row['duration']),
-                        visit_date=row.get('date')
-                    )
-        except FileNotFoundError:
-            print(f"Файл {filename} не найден")
-
-    @staticmethod
-    def save_to_csv(filename: str = 'data.csv') -> None:
-        """Статический метод для сохранения данных в CSV"""
-        with open(filename, 'w', encoding='utf-8', newline='') as file:
-            writer = csv.DictWriter(file, fieldnames=[
-                'id', 'patient_name', 'doctor_name', 'reason', 'duration', 'date'
-            ])
-            writer.writeheader()
-            for visit in MedicalVisit._all_visits:
-                writer.writerow({
-                    'id': visit._id,
-                    'patient_name': visit._patient_name,
-                    'doctor_name': visit._doctor_name,
-                    'reason': visit._reason,
-                    'duration': visit._duration,
-                    'date': visit._visit_date
-                })
-
-    @staticmethod
-    def count_files_in_directory(path: str = '.') -> int:
-        """Статический метод для подсчета файлов в директории"""
-        return len([f for f in os.listdir(path) if os.path.isfile(os.path.join(path, f))])
-
-    @classmethod
-    def get_visits_by_doctor(cls, doctor_name: str) -> Iterator['MedicalVisit']:
-        """Генератор для получения посещений конкретного врача"""
-        for visit in cls._all_visits:
-            if visit._doctor_name == doctor_name:
-                yield visit
-
-    @classmethod
-    def get_long_visits(cls, min_duration: int = 15) -> Iterator['MedicalVisit']:
-        """Генератор для получения длительных посещений"""
-        for visit in cls._all_visits:
-            if visit._duration > min_duration:
-                yield visit
-
-    def to_dict(self) -> Dict[str, str]:
-        """Преобразование объекта в словарь"""
+    def to_dict(self):
         return {
-            'id': self._id,
-            'patient_name': self._patient_name,
-            'doctor_name': self._doctor_name,
-            'reason': self._reason,
-            'duration': self._duration,
-            'date': self._visit_date
+            'id': self.id,
+            'patient_name': self.patient_name,
+            'doctor_name': self.doctor_name,
+            'reason': self.reason,
+            'duration': self.duration
         }
 
-
-class ExtendedMedicalVisit(MedicalVisit):
-    """Расширенный класс посещения с дополнительной информацией"""
-
-    def __init__(self, visit_id: str, patient_name: str, doctor_name: str,
-                 reason: str, duration: int, diagnosis: str,
-                 visit_date: Optional[str] = None):
-        super().__init__(visit_id, patient_name, doctor_name, reason, duration, visit_date)
-        self._diagnosis = diagnosis
-
-    def __repr__(self) -> str:
-        """Переопределение repr для расширенного класса"""
-        return (f"ExtendedMedicalVisit(id={self._id}, patient={self._patient_name}, "
-                f"doctor={self._doctor_name}, reason={self._reason}, "
-                f"duration={self._duration}, diagnosis={self._diagnosis}, "
-                f"date={self._visit_date})")
-
-    def __str__(self) -> str:
-        """Переопределение str для расширенного класса"""
-        return (f"Расширенное посещение #{self._id}: {self._patient_name} у "
-                f"{self._doctor_name} с диагнозом '{self._diagnosis}'")
+    @staticmethod
+    def from_dict(data):
+        return Visit(
+            data['id'],
+            data['patient_name'],
+            data['doctor_name'],
+            data['reason'],
+            data['duration']
+        )
 
 
-class VisitCollection:
-    """Класс-коллекция для работы с посещениями"""
+class ClinicHistory:
+    def __init__(self, visits=None):
+        self._visits = visits or []
 
-    def __init__(self, visits: List[MedicalVisit]):
-        self._visits = visits
-
-    def __iter__(self) -> Iterator[MedicalVisit]:
-        """Итератор по коллекции"""
+    def __iter__(self):
+        # Реализация итератора
         return iter(self._visits)
 
-    def __getitem__(self, index: int) -> MedicalVisit:
-        """Доступ по индексу"""
+    def __getitem__(self, index):
+        # Доступ по индексу
         return self._visits[index]
 
-    def __len__(self) -> int:
-        """Количество элементов в коллекции"""
+    def __len__(self):
         return len(self._visits)
 
-    def sort_by(self, attribute: str, reverse: bool = False) -> 'VisitCollection':
-        """Сортировка коллекции по атрибуту"""
-        return VisitCollection(sorted(
-            self._visits,
-            key=lambda x: getattr(x, f"_{attribute}"),
-            reverse=reverse
-        ))
+    def add_visit(self, visit):
+        self._visits.append(visit)
 
-    def filter_by(self, attribute: str, value: str) -> 'VisitCollection':
-        """Фильтрация коллекции по значению атрибута"""
-        return VisitCollection([
-            visit for visit in self._visits
-            if getattr(visit, f"_{attribute}") == value
-        ])
+    def sort_by_patient(self):
+        return ClinicHistory(sorted(self._visits, key=lambda v: v.patient_name))
+
+    def sort_by_duration(self):
+        return ClinicHistory(sorted(self._visits, key=lambda v: v.duration))
+
+    def filter_by_duration(self, threshold):
+        return ClinicHistory([v for v in self._visits if v.duration > threshold])
+
+    def save_to_file(self, filename='data.csv'):
+        with open(filename, 'w', newline='', encoding='utf-8') as csvfile:
+            fieldnames = ['id', 'patient_name', 'doctor_name', 'reason', 'duration']
+            writer = csv.DictWriter(csvfile, fieldnames=fieldnames)
+            writer.writeheader()
+            for visit in self._visits:
+                writer.writerow(visit.to_dict())
+
+    @staticmethod
+    def load_from_file(filename='data.csv'):
+        try:
+            visits = []
+            with open(filename, 'r', encoding='utf-8') as csvfile:
+                reader = csv.DictReader(csvfile)
+                for row in reader:
+                    visits.append(Visit.from_dict(row))
+            return ClinicHistory(visits)
+        except FileNotFoundError:
+            print("Файл не найден.")
+            return ClinicHistory()
+
+    @staticmethod
+    def generate_sample_data():
+        sample_data = [
+            {'id': '1', 'patient_name': 'Иванов И.И.', 'doctor_name': 'Петров П.П.',
+             'reason': 'ОРВИ', 'duration': 20},
+            {'id': '2', 'patient_name': 'Сидоров С.С.', 'doctor_name': 'Васильева В.В.',
+             'reason': 'Консультация', 'duration': 15},
+            {'id': '3', 'patient_name': 'Петрова П.П.', 'doctor_name': 'Смирнов С.С.',
+             'reason': 'Анализы', 'duration': 10},
+            {'id': '4', 'patient_name': 'Кузнецов К.К.', 'doctor_name': 'Петров П.П.',
+             'reason': 'Обследование', 'duration': 30},
+            {'id': '5', 'patient_name': 'Алексеева А.А.', 'doctor_name': 'Васильева В.В.',
+             'reason': 'Прививка', 'duration': 5}
+        ]
+        return [Visit.from_dict(d) for d in sample_data]
+
+
+class ExtendedClinicHistory(ClinicHistory):
+    def total_duration(self):
+        return sum(visit.duration for visit in self._visits)
+
+    def patients_of_doctor(self, doctor_name):
+        return ClinicHistory([v for v in self._visits if v.doctor_name == doctor_name])
+
+
+def count_files_in_directory():
+    files = [f for f in os.listdir() if os.path.isfile(f)]
+    return len(files)
 
 
 def main():
     print("Лабораторная работа №4. Классы\n")
 
-    # 1. Подсчет файлов в директории (статический метод)
-    file_count = MedicalVisit.count_files_in_directory()
-    print(f"Количество файлов в текущей директории: {file_count}")
+    # 1. Подсчет файлов в директории
+    file_count = count_files_in_directory()
+    print(f"Количество файлов в текущей директории: {file_count}\n")
 
     # 2. Загрузка данных из файла
-    MedicalVisit.load_from_csv()
+    clinic_history = ClinicHistory.load_from_file()
 
-    # Если файл был пуст, создаем тестовые данные
-    if not MedicalVisit._all_visits:
-        print("\nСоздаем тестовые данные...")
-        MedicalVisit("1", "Иванов И.И.", "Петров П.П.", "ОРВИ", 20)
-        MedicalVisit("2", "Сидоров С.С.", "Васильева В.В.", "Консультация", 15)
-        ExtendedMedicalVisit("3", "Петрова П.П.", "Смирнов С.С.",
-                             "Анализы", 10, "Здоров")
-        ExtendedMedicalVisit("4", "Кузнецов К.К.", "Петров П.П.",
-                             "Обследование", 30, "Гипертония")
-        MedicalVisit("5", "Алексеева А.А.", "Васильева В.В.", "Прививка", 5)
-        MedicalVisit.save_to_csv()
+    if not clinic_history:
+        print("Файл data.csv не найден. Создаем пример данных.\n")
+        clinic_history = ExtendedClinicHistory(ExtendedClinicHistory.generate_sample_data())
 
-    # Создаем коллекцию посещений
-    visits = VisitCollection(MedicalVisit._all_visits)
+    # 2.1. Сортировка по ФИО пациента
+    sorted_by_patient = clinic_history.sort_by_patient()
+    print("Посещения, отсортированные по ФИО пациента:")
+    for visit in sorted_by_patient:
+        print(visit)
 
-    # 3. Демонстрация работы итератора
-    print("\nВсе посещения (через итератор):")
-    for idx, visit in enumerate(visits, 1):
-        print(f"{idx}. {visit}")
-
-    # 4. Демонстрация доступа по индексу
-    print("\nПервое посещение (доступ по индексу):")
-    print(visits[0])
-
-    # 5. Демонстрация сортировки
+    # 2.2. Сортировка по длительности
+    sorted_by_duration = clinic_history.sort_by_duration()
     print("\nПосещения, отсортированные по длительности:")
-    sorted_visits = visits.sort_by("duration")
-    for visit in sorted_visits:
-        print(f"{visit.duration} мин: {visit._patient_name}")
+    for visit in sorted_by_duration:
+        print(visit)
 
-    # 6. Демонстрация фильтрации
-    print("\nПосещения у врача Петров П.П.:")
-    filtered_visits = visits.filter_by("doctor_name", "Петров П.П.")
+    # 2.3. Фильтрация по длительности
+    filtered_visits = clinic_history.filter_by_duration(15)
+    print("\nПосещения длительностью более 15 минут:")
     for visit in filtered_visits:
         print(visit)
 
-    # 7. Демонстрация генератора
-    print("\nДлительные посещения (более 15 мин):")
-    for visit in MedicalVisit.get_long_visits():
+    # Генератор пациентов определенного врача (через наследование)
+    doctor_visits = clinic_history.patients_of_doctor('Васильева В.В.')
+    print("\nПациенты у врача Васильева В.В.:")
+    for visit in doctor_visits:
         print(visit)
 
-    # 8. Добавление нового посещения
+    # Общая суммарная длительность приемов
+    extended_clinic = ExtendedClinicHistory(clinic_history)
+    print(f"\nОбщая длительность всех посещений: {extended_clinic.total_duration()} мин.")
+
+    # Добавление нового посещения
     print("\nДобавление нового посещения:")
-    try:
-        new_visit = MedicalVisit(
-            visit_id=str(len(visits) + 1),
-            patient_name=input("ФИО пациента: "),
-            doctor_name=input("ФИО врача: "),
-            reason=input("Причина обращения: "),
-            duration=int(input("Длительность приема (мин): "))
-        )
-        print(f"Добавлено новое посещение: {new_visit}")
-    except ValueError as e:
-        print(f"Ошибка: {e}")
+    new_visit = Visit(
+        id=str(len(clinic_history) + 1),
+        patient_name=input("ФИО пациента: "),
+        doctor_name=input("ФИО врача: "),
+        reason=input("Причина обращения: "),
+        duration=int(input("Длительность (мин): "))
+    )
+    clinic_history.add_visit(new_visit)
+    print("Новое посещение добавлено!\n")
 
-    # 9. Сохранение данных
-    MedicalVisit.save_to_csv()
-    print("\nДанные сохранены в файл data.csv")
-
-    # 10. Демонстрация repr
-    print("\nПример repr для посещения:")
-    print(repr(visits[0]))
-
-    # 11. Демонстрация наследования
-    print("\nДемонстрация наследования (расширенные посещения):")
-    for visit in visits:
-        if isinstance(visit, ExtendedMedicalVisit):
-            print(visit)
+    # Сохранение обратно в CSV
+    clinic_history.save_to_file()
+    print("Новые данные сохранены в файл data.csv")
 
 
 if __name__ == "__main__":

@@ -1,5 +1,26 @@
-{% extends "base.html" %}
-{% block content %}
-    <h1>Система учета посещений</h1>
-    <p>Добро пожаловать! Используйте меню для работы с данными.</p>
-{% endblock %}
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <title>Посещения поликлиники</title>
+</head>
+<body>
+    <h1>История посещений</h1>
+    <table border="1">
+        <thead>
+            <tr>
+                <th>ID</th>
+                <th>Пациент</th>
+                <th>Врач</th>
+                <th>Причина</th>
+                <th>Длительность</th>
+            </tr>
+        </thead>
+        <tbody>
+            {{rows}}
+        </tbody>
+    </table>
+    <br>
+    <a href="/add">Добавить новое посещение</a>
+</body>
+</html>
